@@ -1,3 +1,4 @@
+name: angel
 services:
   db:
     image: mysql
@@ -5,21 +6,14 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: example
     # (this is just an example, not intended to be a production configuration)
-  ingestor:
+  angel_eater:
+    depends_on:
+      - db
+    restart: unless-stopped
     build:
-      context: ./Ingestor
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 1d
-  recorder:
-    build:
-      context: ./Recorder
-    deploy:
-      restart_policy:
-        condition: any
-        delay: 1d
+      context: .
     volumes:
-      - ./Recordings:/app/Recordings
+      - ./.debug/Recordings:/app/Recordings
+      - ./.debug/Output:/app/Output
 
         

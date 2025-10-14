@@ -6,17 +6,17 @@ import mysql.connector
 
 # Database configuration
 DB_CONFIG = {
-    'host': '172.19.0.2',
+    'host': 'db',
     'user': 'root',
     'password': 'example',
     'database': 'angel'
 }
 
 # Directory where the source MP3 files are stored
-SOURCE_DIR = '/home/david/Documents/Angel/Recorder/Recordings'
+SOURCE_DIR = '/app/Recordings'
 
 # Directory where the output MP3 files will be stored
-OUTPUT_DIR = '/home/david/Documents/Angel/Recorder/Output'
+OUTPUT_DIR = '/app/Output'
 
 def fetch_timestamps(connection):
     # Fetch start and end timestamps along with programme names from the MySQL database.
@@ -101,7 +101,7 @@ def assemble():
 
         # Ensure the output file name is unique and includes the programme name
         sanitized_name = "".join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in name)
-        output_file = os.path.join(OUTPUT_DIR, f"{start_time.strftime("%Y_%m_%d_%H_%M")}_{sanitized_name}.mp3")
+        output_file = os.path.join(OUTPUT_DIR, f"{start_time.strftime('%Y_%m_%d_%H_%M')}_{sanitized_name}.mp3")
 
         # Generate the list of files to concatenate
         file_list = generate_file_list(start_time, end_time)

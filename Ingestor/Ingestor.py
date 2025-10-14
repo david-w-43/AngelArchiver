@@ -117,7 +117,7 @@ def upload_programmes_to_database(programmes):
     # Connect to the MySQL database
     try:
         connection = mysql.connector.connect(
-            host="172.19.0.2",
+            host="db",
             user="root",
             password="example",
             database="angel"
@@ -189,8 +189,7 @@ def upload_programmes_for_day(day):
     # Upload the programme schedule to the database
     upload_programmes_to_database(programmes)
 
-# Main execution
-if __name__ == "__main__":
+def ingest_all():
     # List of days to upload programmes for
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     
@@ -198,3 +197,7 @@ if __name__ == "__main__":
         print(f"Uploading programmes for {day}...")
         upload_programmes_for_day(day)
         print(f"Finished uploading programmes for {day}.")
+
+# Main execution
+if __name__ == "__main__":
+    ingest_all()
