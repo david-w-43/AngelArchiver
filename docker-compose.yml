@@ -5,3 +5,21 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: example
     # (this is just an example, not intended to be a production configuration)
+  ingestor:
+    build:
+      context: ./Ingestor
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 1d
+  recorder:
+    build:
+      context: ./Recorder
+    deploy:
+      restart_policy:
+        condition: any
+        delay: 1d
+    volumes:
+      - ./Recordings:/app/Recordings
+
+        

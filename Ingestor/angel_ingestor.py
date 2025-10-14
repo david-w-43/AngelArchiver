@@ -61,7 +61,7 @@ def convert_time_to_hours_minutes(time_str):
         print(f"Invalid time format: {time_str}")
         return None
     
-def parse_entries(entries):
+def parse_entries(entries, date):
     # Create empty list of Programme objects
     programmes = []
 
@@ -70,15 +70,15 @@ def parse_entries(entries):
     next_day = False
     previous_time = (0, 0)
     for i, (time, title, subtitle) in enumerate(entries):
-        # Detect next day
-        if pm and (time[0] < previous_time[0] - 12):
+        # Detect next day, with bodge for out of order times
+        if pm and (time[0] <= previous_time[0] - 12) and (previous_time[0] in [10, 11, 12]):
             next_day = True
         # Detect change to pm
         if (time[0] < previous_time[0]):
             pm = True
 
         # If the time is in the afternoon, adjust the hour
-        if pm and not next_day:
+        if pm and not next_day and time[0] < 12:
             time = (time[0] + 12, time[1])
         
         # Create a Programme object, using the current year and the date from the website
@@ -95,14 +95,15 @@ def parse_entries(entries):
         # Update previous time
         previous_time = time
 
-    # Run through and update the end times
-    for i in range(len(programmes)):
-        if i < len(programmes) - 1:
-            programmes[i].end_time = programmes[i + 1].start_time
-        else:
-            # If it's the last programme, set the end time to one hour after the start time
-            # We'll go back and update this later
-            programmes[i].end_time = programmes[i].start_time + timedelta(hours=1)
+    # REMOVED END TIMES AS THIS IS HANDLED IN ASSEMBLE.PY
+    # # Run through and update the end times
+    # for i in range(len(programmes)):
+    #     if i < len(programmes) - 1:
+    #         programmes[i].end_time = programmes[i + 1].start_time
+    #     else:
+    #         # If it's the last programme, set the end time to one hour after the start time
+    #         # We'll go back and update this later
+    #         programmes[i].end_time = programmes[i].start_time + timedelta(hours=1)
 
     return programmes
 
@@ -123,15 +124,36 @@ def upload_programmes_to_database(programmes):
         )
         cursor = connection.cursor()
 
+        # Check if the "programmes" table exists
+        cursor.execute("""
+        SELECT COUNT(*)
+        FROM information_schema.tables
+        WHERE table_schema = 'angel'
+        AND table_name = 'programmes'
+        """)
+        if cursor.fetchone()[0] == 0:
+            # Create the "programmes" table if it doesn't exist
+            create_table_query = """
+            CREATE TABLE `programmes` (
+                `id` int NOT NULL AUTO_INCREMENT COMMENT 'Primary Key',
+                `start_time` datetime NOT NULL COMMENT 'Start Time',
+                `name` varchar(255) NOT NULL,
+                `subtitle` varchar(255) DEFAULT NULL,
+                `filepath` varchar(255) DEFAULT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE KEY `start_time` (`start_time`)
+            )
+            """
+            cursor.execute(create_table_query)
         
         # Insert each programme into the "programmes" table
         for programme in programmes:
             try:
                 insert_query = """
-                INSERT INTO programmes (start_time, end_time, name, subtitle)
-                VALUES (%s, %s, %s, %s)
+                INSERT INTO programmes (start_time, name, subtitle)
+                VALUES (%s, %s, %s)
                 """
-                cursor.execute(insert_query, (programme.start_time, programme.end_time, programme.title, programme.subtitle))
+                cursor.execute(insert_query, (programme.start_time, programme.title, programme.subtitle))
             except mysql.connector.Error as err:
                 print(f"Error inserting {programme.title}: {err.msg}")
             
@@ -147,38 +169,32 @@ def upload_programmes_to_database(programmes):
             cursor.close()
         connection.close()
 
+def upload_programmes_for_day(day):
+    url = "https://www.angelradio.co.uk/" + day.lower()
+    
+    # Get programme times and titles from the Angel Radio website
+    programme_pattern = r"([0-9]{1,2}[:\.][0-9]{2})(?:\s+)([\w'’&() ]*)(?:[-–] (.*))?"
+    matches = extract_regex_matches(url, programme_pattern)
 
-# Get the current day of week
-current_day_of_week = datetime.now().strftime("%A")
+    # Convert the matches' time format and clean up titles
+    matches = [(convert_time_to_hours_minutes(time), title.strip().replace("TOMORROW", ""), subtitle.strip().replace("TOMORROW", "")) for time, title, subtitle in matches]
 
-# URL to scrape
-url = "https://www.angelradio.co.uk/" + current_day_of_week.lower()
+    # Get date from the website
+    date_pattern = r"\w*day\D+(\d+)(?:st|nd|rd|th)\W+([A-Z][a-z]+)"
+    date = extract_regex_matches(url, date_pattern)[0]
 
-print(f"Fetching programme schedule for {current_day_of_week} from {url}")
+    programmes = parse_entries(matches, date)
+    for programme in programmes:
+        print(f"{programme.start_time.strftime('%Y-%m-%d %H:%M')} - {programme.title} - {programme.subtitle}")
+    # Upload the programme schedule to the database
+    upload_programmes_to_database(programmes)
 
-# Get programme times and titles from the Angel Radio website
-pattern = r"([0-9]{1,2}[:\.][0-9]{2})(?:\s+)([\w'’&() ]*)(?:[-–] (.*))?"
-matches = extract_regex_matches(url, pattern)
-
-# Convert the matches' time format and clean up titles
-matches = [(convert_time_to_hours_minutes(time), title.strip(), subtitle.strip()) for time, title, subtitle in matches]
-
-# Get date from the website
-datepattern = r"\w*day\D+(\d+)(?:st|nd|rd|th)\W+([A-Z][a-z]+)"
-date = extract_regex_matches(url, datepattern)[0]
-
-# Print info
-#print("All matches: ", matches)
-#print("Today: ", date)
-
-programmes = parse_entries(matches)
-
-# Print the programme schedule
-print("Programme schedule:")
-for programme in programmes:
-    print(f"{programme.start_time.strftime('%Y-%m-%d %H:%M')} - {programme.title}")
-
-# Upload the programme schedule to the database
-upload_programmes_to_database(programmes)
-
-
+# Main execution
+if __name__ == "__main__":
+    # List of days to upload programmes for
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    
+    for day in days:
+        print(f"Uploading programmes for {day}...")
+        upload_programmes_for_day(day)
+        print(f"Finished uploading programmes for {day}.")
