@@ -1,5 +1,7 @@
 # Angel Archiver
 
+[![Docker Image CI](https://github.com/david-w-43/AngelArchiver/actions/workflows/docker-image.yml/badge.svg)](https://github.com/david-w-43/AngelArchiver/actions/workflows/docker-image.yml)
+
 A wonderfully bodgy service to archive my favourite local radio station, [Angel Radio](https://www.angelradio.co.uk). It's great for finding new (old) music as they have a great variety of tune - and nothing after 1969!
 
 ## Get started
