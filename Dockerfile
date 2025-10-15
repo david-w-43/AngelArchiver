@@ -31,9 +31,7 @@ COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 # Run the ingestor on container start
 #RUN python3 /app/run.py
 
-RUN echo "=============================="
-RUN echo "Container setup complete!"
-RUN echo "=============================="
+RUN echo "==== Container setup complete! ===="
 
 # Start supervisord
 CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

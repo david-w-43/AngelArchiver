@@ -84,6 +84,7 @@ def parse_entries(entries, date):
         # Create a Programme object, using the current year and the date from the website
         # Month comes through as a string, so we need to use strptime!
         start_time = datetime.strptime(f"{datetime.now().year}-{date[1]}-{date[0]} {time[0]}:{time[1]}", "%Y-%B-%d %H:%M")
+        start_time = start_time.astimezone()  # Ensure the time is in local timezone
 
         # If next_day is True, add one day
         if next_day:

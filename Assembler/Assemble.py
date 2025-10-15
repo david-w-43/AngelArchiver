@@ -1,6 +1,6 @@
 import os
 import subprocess
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import mysql.connector
 
@@ -41,7 +41,8 @@ def generate_file_list(start_time, end_time):
         if filename.endswith('.mp3'):
             try:
                 file_timestamp = datetime.strptime(filename[:12], '%Y%m%d%H%M')
-                if start_time <= file_timestamp < end_time:
+                file_timestamp = file_timestamp.replace(tzinfo=timezone.utc).astimezone(tz=None)
+                if start_time.astimezone(tz=None) <= file_timestamp < end_time.astimezone(tz=None):
                     file_list.append(os.path.join(SOURCE_DIR, filename))
             except ValueError:
                 print(f"Skipping file with invalid timestamp format: {filename}")
@@ -101,7 +102,7 @@ def assemble():
 
         # Ensure the output file name is unique and includes the programme name
         sanitized_name = "".join(c if c.isalnum() or c in (' ', '_', '-') else '_' for c in name)
-        output_file = os.path.join(OUTPUT_DIR, f"{start_time.strftime('%Y_%m_%d_%H_%M')}_{sanitized_name}.mp3")
+        output_file = os.path.join(OUTPUT_DIR, f"{start_time.strftime('%Y.%m.%d_%H.%M')}_{sanitized_name}.mp3")
 
         # Generate the list of files to concatenate
         file_list = generate_file_list(start_time, end_time)
