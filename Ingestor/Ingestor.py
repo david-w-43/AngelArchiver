@@ -119,10 +119,19 @@ def upload_programmes_to_database(programmes):
         connection = mysql.connector.connect(
             host="db",
             user="root",
-            password="example",
-            database="angel"
+            password="example"
         )
         cursor = connection.cursor()
+
+        # Check if the "angel" database exists
+        cursor.execute("SHOW DATABASES")
+        databases = [db[0] for db in cursor.fetchall()]
+        if "angel" not in databases:
+            # Create the "angel" database if it doesn't exist
+            cursor.execute("CREATE DATABASE angel")
+
+        # Connect to the "angel" database
+        connection.database = "angel"
 
         # Check if the "programmes" table exists
         cursor.execute("""
